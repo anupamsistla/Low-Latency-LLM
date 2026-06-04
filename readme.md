@@ -256,4 +256,14 @@ With more time, I would test multiple model providers and regions to compare tim
 
 I would also research better instrumentation/methods for separating the proxy -> LLM and LLM -> proxy paths. My current method measures the observable round trip from the Worker to the provider and back, but it does not cleanly separate the two directions.
 
+## Bonus: Other Proxy Hosting Options
 
+### AWS Lambda + API Gateway
+
+AWS Lambda + API Gateway would give more control over deployment regions and infra, plus strong observability through AWS tooling. It would also integrate well with other AWS services, but the tradeoff is more setup and possible added latency from API Gateway overhead or Lambda cold starts.
+
+### Fly.io
+
+Fly.io could also run the proxy in selected regions, giving more control over where the proxy is placed relative to users or the model provider. The tradeoff is that I would need to manage regional deployment and scaling more directly, while Cloudflare Workers handles edge placement more automatically.
+
+This approach could reduce proxy <-> LLM latency if the proxy is placed in a region closer to the model provider. A similar argument can be made for the AWS Lambda + API Gateway approach as well.
