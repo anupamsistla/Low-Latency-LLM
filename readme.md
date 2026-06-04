@@ -84,6 +84,12 @@ If using `nvm`, switch to Node 22:
 nvm use 22
 ```
 
+### Getting a Groq API Key
+
+To get a Groq API key, go to Groq’s website, create an account, and open the API Keys section from the dashboard.
+
+Create a new key and use it as the value for `MODEL_API_KEY` in `.dev.vars` for local development or as a Cloudflare Worker secret for deployment.
+
 ## Local Setup
 
 Clone the repository:
@@ -214,7 +220,7 @@ I collected latency measurements from repeated runs (20) against the deployed Cl
 
 For the proxy <-> LLM timing, I reported the full observable round trip from the Worker to the model provider and back to the Worker’s first streamed chunk. I could not compute proxy -> LLM and LLM -> proxy separately because Groq did not expose provider-side timing information for each path. I also did not divide this value by 2 because that would assume both directions take the same amount of time, which is not necessarily true. 
 
-I included `model to proxy first chunk` in this calculation because some providers may add a delay between sending response headers and streaming the first body chunk. It is calculated as the time between receiving the response headers to getting the first streamed chunk. In my measurements this value was 0 ms, which suggests that Groq sent the response headers and first streamed chunk together. This means that the time the model took to generate the response is convered by `proxy to model headers`
+I included `model to proxy first chunk` in this calculation because some providers may add a delay between sending response headers and streaming the first body chunk. It is calculated as the time between receiving the response headers to getting the first streamed chunk. In my measurements this value was 0 ms, which suggests that Groq sent the response headers and first streamed chunk together. This means that the time the model took to generate the response is covered by `proxy to model headers`.
 
 `client to first chunk ms` was measured from the client side. I recorded the time immediately before sending the `POST /api/complete` request, then recorded the time when the first streamed response body chunk was received. I treated this as the main user-facing latency metric because it represents when the user first starts receiving output.
 
@@ -240,7 +246,7 @@ The tradeoff is that longer responses may be cut off.
 
 ### No retries
 
-I did not add retries in the main request path because retries can increase latency when a request fails or slows down. The tradeoff is that the proxy is less fault-tolerant, but for autocomplete a late response is often less useful than failing quickly.
+I did not add retries in the main request path because retries can increase latency when a request fails or slows down. The tradeoff is that the proxy is less fault-tolerant.
 
 ## What Matters for an Autocomplete Use Case and How That Shaped My Approach
 
@@ -339,3 +345,7 @@ curl -N -X POST https://llm-proxy.<your-subdomain>.workers.dev/api/complete \
 ```
 
 The timing logs will appear in the `wrangler tail` output.
+
+### Interesting Finding
+
+In local testing, `model to proxy first chunk ms` sometimes appeared around 0–3 ms, while the deployed Worker consistently showed 0 ms. I treated the small value as Wrangler/local runtime overhead or buffering, not meaningful model latency.
