@@ -267,3 +267,75 @@ AWS Lambda + API Gateway would give more control over deployment regions and inf
 Fly.io could also run the proxy in selected regions, giving more control over where the proxy is placed relative to users or the model provider. The tradeoff is that I would need to manage regional deployment and scaling more directly, while Cloudflare Workers handles edge placement more automatically.
 
 This approach could reduce proxy <-> LLM latency if the proxy is placed in a region closer to the model provider. A similar argument can be made for the AWS Lambda + API Gateway approach as well.
+
+## Final Note: Running Timing Checks
+
+### Client-side timing
+
+The client-side timing script measures:
+
+```text
+health rtt ms
+client to first chunk ms
+```
+
+For local testing, run the Worker locally:
+
+```bash
+npm run dev
+```
+
+Then run:
+
+```bash
+node measure-client.js http://localhost:8787
+```
+
+For deployed testing, use the deployed Worker URL instead:
+
+```bash
+node measure-client.js https://llm-proxy.<your-subdomain>.workers.dev
+```
+
+The script works the same way in both cases. The only difference is the Worker URL.
+
+### Proxy-side timing
+
+The Worker logs proxy-side timing values:
+
+```text
+proxy to model headers ms
+model to proxy first chunk ms
+```
+
+For local testing, run:
+
+```bash
+npm run dev
+```
+
+Then send a request to the local Worker:
+
+```bash
+curl -N -X POST http://localhost:8787/api/complete \
+  -H "Content-Type: application/json" \
+  -d '{"prompt":"Complete this sentence: The fastest way to reduce latency is"}'
+```
+
+The timing logs will appear in the local Wrangler terminal.
+
+For deployed testing, start log streaming:
+
+```bash
+npx wrangler tail
+```
+
+Then send a request to the deployed Worker:
+
+```bash
+curl -N -X POST https://llm-proxy.<your-subdomain>.workers.dev/api/complete \
+  -H "Content-Type: application/json" \
+  -d '{"prompt":"Complete this sentence: The fastest way to reduce latency is"}'
+```
+
+The timing logs will appear in the `wrangler tail` output.

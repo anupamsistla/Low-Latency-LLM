@@ -1,4 +1,11 @@
-import {INDEX_HTML} from "./index_html"
+/*
+ * Low Latency LLM
+ * Author: Anupam Sai Sistla
+ * Description: A Cloudflare Worker proxy that streams LLM responses from Groq to a minimal client.
+ */
+
+import { INDEX_HTML } from "./index_html";
+
 export interface Env {
 	MODEL_API_KEY: string;
 	MODEL?: string;
@@ -21,6 +28,7 @@ export default {
 			});
 		}
 
+		// Lightweight endpoint used to estimate client <-> proxy latency.
 		if (request.method === "GET" && url.pathname === "/health") {
 			return new Response(JSON.stringify({ ok: true }), {
 				status: 200,
@@ -39,6 +47,7 @@ export default {
 };
 
 async function handleComplete(request: Request, env: Env): Promise<Response> {
+	// The model API key is stored as a Worker secret and is never exposed to the client.
 	if (!env.MODEL_API_KEY) {
 		return new Response("Missing model api key", { status: 500 });
 	}
@@ -59,6 +68,7 @@ async function handleComplete(request: Request, env: Env): Promise<Response> {
 		});
 	}
 
+	// Start timing the observable proxy <-> model provider path.
 	const modelFetchStart = performance.now();
 
 	const modelResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -77,6 +87,8 @@ async function handleComplete(request: Request, env: Env): Promise<Response> {
 			],
 			temperature: 0.2,
 			max_completion_tokens: 64,
+
+			// Ask Groq to stream chunks as they are generated.
 			stream: true,
 		}),
 	});
@@ -109,7 +121,9 @@ async function handleComplete(request: Request, env: Env): Promise<Response> {
 			"Content-Type": "text/event-stream; charset=utf-8",
 			"Cache-Control": "no-cache",
 			"Connection": "keep-alive",
-			"Server-Timing": `proxy to model headers;dur=${proxyToModelHeadersMs.toFixed(10)}`,
+
+			// Exposes proxy-side timing in the response headers.
+			"Server-Timing": `proxy_to_model_headers;dur=${proxyToModelHeadersMs.toFixed(10)}`,
 		},
 	});
 }
@@ -144,6 +158,7 @@ function measureFirstChunkOnly(
 				);
 			}
 
+			// Forward each provider chunk immediately instead of buffering the full response.
 			controller.enqueue(value);
 		},
 

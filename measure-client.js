@@ -1,3 +1,9 @@
+/*
+ * Low Latency LLM
+ * Author: Anupam Sai Sistla
+ * Description: Client-side script for measuring health RTT and time to first streamed chunk.
+ */
+
 const WORKER_URL = process.argv[2];
 
 if (!WORKER_URL) {
@@ -24,6 +30,7 @@ async function measureHealthRtt() {
 }
 
 async function measureClientToFirstChunk() {
+	// Start timing before the client sends the completion request.
 	const start = performance.now();
 
 	const response = await fetch(`${WORKER_URL}/api/complete`, {
@@ -59,6 +66,8 @@ async function measureClientToFirstChunk() {
 		if (value && value.length > 0) {
 			const firstChunkAt = performance.now();
 
+			// Stop reading after the first chunk because this metric only measures
+			// how quickly the first chunk takes to arrive, not how long the full response takes.
 			await reader.cancel();
 
 			return firstChunkAt - start;
