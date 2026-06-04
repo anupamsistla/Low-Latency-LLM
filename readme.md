@@ -96,7 +96,7 @@ Clone the repository:
 
 ```bash
 git clone https://github.com/anupamsistla/Low-Latency-LLM.git
-cd llm-proxy
+cd Low-Latency-LLM
 ```
 
 Install dependencies:
@@ -168,6 +168,12 @@ Deploy the Worker:
 
 ```bash
 npx wrangler deploy
+```
+
+If this is your first time deploying a Worker on your Cloudflare account, Wrangler may ask you to register a `workers.dev` subdomain. Choose yes and any available subdomain. For example, I chose:
+
+```text
+anupamsai
 ```
 
 After deployment, Wrangler will print the deployed URL, usually in this format:
