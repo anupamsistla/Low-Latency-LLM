@@ -220,3 +220,40 @@ I included `model to proxy first chunk` in this calculation because some provide
 
 For all timing measurements in both the Worker and client-side script, I used `performance.now()` to record timestamps and compute elapsed time in milliseconds.
 
+## What I Optimized and Tradeoffs
+
+### Streaming responses
+
+I enabled streaming in the request to the model provider so Groq can send chunks of the response as it is being generated. The Worker forwards those chunks directly to the client. This allows the client to start receiving output without waiting for the full response to be generated.
+
+The tradeoff is that the client has to parse a streamed response instead of a simple JSON object.
+
+### Fast model choice
+
+I chose `llama-3.1-8b-instant` because this project is focused on low latency rather than deep reasoning. The tradeoff is that a larger model may produce stronger answers, but would likely increase response time.
+
+### Short output limit
+
+I limited the response with `max_completion_tokens: 64` to keep generations short and closer to an autocomplete-style use case. This also reduces request-to-last-chunk latency, which is useful because the use case only needs a short useful completion.
+
+The tradeoff is that longer responses may be cut off.
+
+### No retries
+
+I did not add retries in the main request path because retries can increase latency when a request fails or slows down. The tradeoff is that the proxy is less fault-tolerant, but for autocomplete a late response is often less useful than failing quickly.
+
+## What Matters for an Autocomplete Use Case and How That Shaped My Approach
+
+For an autocomplete use case, the most important metric is time to first useful output. A suggestion that arrives late, after the user has already continued typing is not very useful as outlined by the project description.
+
+Because the prompt is user-controlled in this project, I did not try to optimize the content of the first few tokens with heavy prompt engineering. Instead, I focused on reducing the time before any useful output could start reaching the client.
+
+That shaped two main choices: enabling streaming from the model provider and choosing a fast model, `llama-3.1-8b-instant`. Streaming helps the response start reaching the client as soon as chunks are available, and the fast model reduces the provider-side delay before output begins.
+
+## What I Would Do With More Time
+
+With more time, I would test multiple model providers and regions to compare time to first chunk more systematically. This would help optimize provider choice for the lowest latency path.
+
+I would also research better instrumentation/methods for separating the proxy -> LLM and LLM -> proxy paths. My current method measures the observable round trip from the Worker to the provider and back, but it does not cleanly separate the two directions.
+
+
