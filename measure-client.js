@@ -1,5 +1,5 @@
 /*
- * Low Latency LLM
+ * Low Latency LLM Proxy
  * Author: Anupam Sai Sistla
  * Description: Client-side script for measuring health RTT and time to first streamed chunk.
  */

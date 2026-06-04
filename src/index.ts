@@ -1,5 +1,5 @@
 /*
- * Low Latency LLM
+ * Low Latency LLM Proxy
  * Author: Anupam Sai Sistla
  * Description: A Cloudflare Worker proxy that streams LLM responses from Groq to a minimal client.
  */
